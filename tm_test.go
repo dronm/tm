@@ -3,34 +3,24 @@ package tm
 import(
 	"fmt"
 	"testing"
-	"io/ioutil"
-	"encoding/json"
-	"bytes"
+	"os"
 )
 
-const Client_contr = "Client_Controller"
-
 type TMIni struct {
-	Token string `json:"token"`
-	ChatID string `json:"chat_id"`
+	Token string
+	ChatID string
 }
 
 func TestSend(t *testing.T) {
-	//read ini file
-	file, err := ioutil.ReadFile("tm.json")
-	if err != nil {
-		t.Fatalf("%v", err)
+	tm_ini := TMIni{Token:os.Getenv("TM_TEST_BOT_TOKEN"), ChatID: os.Getenv("TM_TEST_CHAT_ID")}
+	if tm_ini.Token == "" {
+		t.Fatalf("environment variable 'TM_TEST_BOT_TOKEN' is not initialized")
 	}
-	tm_ini := TMIni{}
-	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
-	err = json.Unmarshal([]byte(file), &tm_ini)		
-	if err != nil {
-		t.Fatalf("%v", err)
+	if tm_ini.ChatID == "" {
+		t.Fatalf("environment variable 'TM_TEST_CHAT_ID' is not initialized")
 	}
-	
-	
 	parameters := map[string]string{
-		 "text": "Hellow, world!",
+		 "text": "Hello, world!",
 		  "chat_id": tm_ini.ChatID,
 	}
 	
