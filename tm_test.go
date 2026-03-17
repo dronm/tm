@@ -1,33 +1,54 @@
 package tm
 
-import(
-	"fmt"
-	"testing"
+import (
 	"os"
+	"testing"
+
+	"github.com/joho/godotenv"
 )
 
-type TMIni struct {
-	Token string
-	ChatID string
+func TestMain(m *testing.M) {
+	_ = godotenv.Load(".env")
+	os.Exit(m.Run())
 }
 
-func TestSend(t *testing.T) {
-	tm_ini := TMIni{Token:os.Getenv("TM_TEST_BOT_TOKEN"), ChatID: os.Getenv("TM_TEST_CHAT_ID")}
-	if tm_ini.Token == "" {
-		t.Fatalf("environment variable 'TM_TEST_BOT_TOKEN' is not initialized")
+func TestRequestJSON(t *testing.T) {
+	botToken := os.Getenv("BOT_TOKEN")
+	chatID := os.Getenv("CHAT_ID")
+	proxyAddr := os.Getenv("PROXY_ADDR")
+	proxyUser := os.Getenv("PROXY_USER")
+	proxyPassword := os.Getenv("PROXY_PASSWORD")
+
+	if botToken == "" {
+		t.Fatal("BOT_TOKEN is not set")
 	}
-	if tm_ini.ChatID == "" {
-		t.Fatalf("environment variable 'TM_TEST_CHAT_ID' is not initialized")
+	if chatID == "" {
+		t.Fatal("CHAT_ID is not set")
 	}
-	parameters := map[string]string{
-		 "text": "Hello, world!",
-		  "chat_id": tm_ini.ChatID,
+
+	var proxyConfig *ProxyConfig
+	if proxyAddr != "" {
+		proxyConfig = &ProxyConfig{
+			Address:  proxyAddr,
+			Username: proxyUser,
+			Password: proxyPassword,
+		}
 	}
-	
-	resp, err := ApiRequestJson(tm_ini.Token, "sendMessage", parameters)
+
+	body, err := RequestJSON(
+		botToken,
+		"sendMessage",
+		map[string]string{
+			"chat_id": chatID,
+			"text":    "test message from go test",
+		},
+		proxyConfig,
+	)
 	if err != nil {
-		t.Fatalf("%v", err)
+		t.Fatalf("RequestJSON() error = %v", err)
 	}
-	fmt.Println(string(resp))
-}
 
+	if len(body) == 0 {
+		t.Fatal("expected non-empty response body")
+	}
+}
