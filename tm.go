@@ -15,7 +15,19 @@ import (
 	"golang.org/x/net/proxy"
 )
 
+const (
+	defMaxIdleConns        = 100
+	defIdleConnTimeout     = 90 * time.Second
+	defTLSHandshakeTimeout = 10 * time.Second
+)
+
 const apiURLTmpl = "https://api.telegram.org/bot%s/%s"
+
+type HTTPTransportConfig struct {
+	MaxIdleConns        int
+	IdleConnTimeout     time.Duration
+	TLSHandshakeTimeout time.Duration
+}
 
 type ProxyConfig struct {
 	Address  string
@@ -27,7 +39,8 @@ func RequestJSON(
 	botToken string,
 	method string,
 	parameters map[string]string,
-	proxyConfig *ProxyConfig,
+	proxyCfg *ProxyConfig,
+	httpTransportCfg *HTTPTransportConfig,
 ) ([]byte, error) {
 	jsonParams, err := json.Marshal(parameters)
 	if err != nil {
@@ -36,7 +49,23 @@ func RequestJSON(
 
 	u := fmt.Sprintf(apiURLTmpl, botToken, method)
 
-	client, err := newHTTPClient(proxyConfig)
+	transpCfg := HTTPTransportConfig{
+		MaxIdleConns:        defMaxIdleConns,
+		IdleConnTimeout:     defIdleConnTimeout,
+		TLSHandshakeTimeout: defTLSHandshakeTimeout,
+	}
+	if httpTransportCfg != nil {
+		if httpTransportCfg.MaxIdleConns > 0 {
+			transpCfg.MaxIdleConns = httpTransportCfg.MaxIdleConns
+		}
+		if httpTransportCfg.IdleConnTimeout > 0 {
+			transpCfg.IdleConnTimeout = httpTransportCfg.IdleConnTimeout
+		}
+		if httpTransportCfg.TLSHandshakeTimeout > 0 {
+			transpCfg.TLSHandshakeTimeout = httpTransportCfg.TLSHandshakeTimeout
+		}
+	}
+	client, err := newHTTPClient(transpCfg, proxyCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -84,13 +113,14 @@ func RequestJSON(
 	return body, nil
 }
 
-func newHTTPClient(proxyConfig *ProxyConfig) (*http.Client, error) {
+func newHTTPClient(transportConfig HTTPTransportConfig, proxyConfig *ProxyConfig) (*http.Client, error) {
 	transport := &http.Transport{
 		ForceAttemptHTTP2:   true,
-		MaxIdleConns:        100,
-		IdleConnTimeout:     90 * time.Second,
-		TLSHandshakeTimeout: 10 * time.Second,
+		MaxIdleConns:        transportConfig.MaxIdleConns,
+		IdleConnTimeout:     transportConfig.IdleConnTimeout,
+		TLSHandshakeTimeout: transportConfig.TLSHandshakeTimeout,
 	}
+	fmt.Println("transpCfg:", transportConfig)
 
 	if proxyConfig != nil && proxyConfig.Address != "" {
 		var auth *proxy.Auth
