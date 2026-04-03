@@ -120,7 +120,6 @@ func newHTTPClient(transportConfig HTTPTransportConfig, proxyConfig *ProxyConfig
 		IdleConnTimeout:     transportConfig.IdleConnTimeout,
 		TLSHandshakeTimeout: transportConfig.TLSHandshakeTimeout,
 	}
-	fmt.Println("transpCfg:", transportConfig)
 
 	if proxyConfig != nil && proxyConfig.Address != "" {
 		var auth *proxy.Auth
